@@ -1,0 +1,8 @@
+body {
+  background: #fff;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+#game {
+  border: 1px solid black;
+}
