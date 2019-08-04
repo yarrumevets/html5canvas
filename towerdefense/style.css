@@ -1,0 +1,26 @@
+body {
+  background: #999;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.canvas-wrapper {
+  text-align: center;
+}
+
+canvas {
+  border: 2px solid #000;
+}
+
+#sprites img {
+  visibility: hidden;
+}
+
+.striked {
+  text-decoration: line-through;
+  color: #333;
+}
+
+h1,
+h2 {
+  text-align: center;
+}

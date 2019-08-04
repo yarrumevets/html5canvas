@@ -1,0 +1,22 @@
+body {
+  background: #eee;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+#game {
+  border: 10px solid #fff;
+}
+
+#gameLevelData {
+  width: calc(100% - 20px);
+  height: 200px;
+  font-family: "Courier New", Courier, monospace;
+  border: 10px solid #fff;
+  background: #000;
+  color: #fff;
+}
+
+#stats {
+  background: yellow;
+  padding: 20px;
+}
