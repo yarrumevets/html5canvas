@@ -33,10 +33,12 @@ class Plot {
     this.tower = null;
   }
   calcLocation(x, y) {
-    this.x = x;
-    this.y = y;
-    this.screenX = TILE_WIDTH / 2 + x * TILE_WIDTH;
-    this.screenY = y * TILE_HEIGHT - 80;
+    return {
+      x,
+      y,
+      screenX: TILE_WIDTH / 2 + x * TILE_WIDTH,
+      screenY: y * TILE_HEIGHT
+    };
   }
   setTower(tower) {
     this.tower = tower;
@@ -64,6 +66,12 @@ class Level {
 }
 
 const game = {
+  cursor: {
+    x: 0,
+    y: 0
+  },
+  x: null,
+  y: null,
   context: null,
   w: 1200, // width in pixels
   h: 800, // height in pixels
@@ -71,7 +79,7 @@ const game = {
   money: 500,
   tileWidth: 160,
   tileHeight: 80, // height of a tile. buildings are 160
-  lives: 10,
+  lives: 15,
   towers: {},
   carIndex: 0, // unique identifier for cars in car obj.
   cars: {},
@@ -95,18 +103,18 @@ const game = {
   currentWaveRow: 0,
   levels: [
     new Level("One", [
-      new Wave([[3, 0, 1], [0, 2, 0], [2, 1, 3]], 4),
-      new Wave([[2, 0, 1], [1, 2, 0], [2, 1, 0]], 7),
-      new Wave([[3, 0, 0], [1, 3, 0], [3, 2, 0]], 5),
-      new Wave([[3, 2, 1], [1, 0, 3], [3, 3, 0]], 6),
-      new Wave([[3, 0, 3], [1, 2, 3], [3, 1, 3]], 7)
+      new Wave([[3, 0, 1], [0, 2, 0], [2, 1, 3]], 3000),
+      new Wave([[2, 0, 1], [1, 2, 0], [2, 1, 0]], 4000),
+      new Wave([[3, 0, 0], [1, 3, 0], [3, 2, 0]], 5000),
+      new Wave([[3, 2, 1], [1, 0, 3], [3, 3, 0]], 6000),
+      new Wave([[3, 0, 3], [1, 2, 3], [3, 1, 3]], 3000)
     ]),
     new Level("Two", [
-      new Wave([[0, 0, 1], [1, 0, 0], [0, 1, 0]], 10),
-      new Wave([[2, 0, 1], [1, 2, 0], [2, 1, 0]], 5),
-      new Wave([[3, 0, 0], [1, 3, 0], [3, 2, 0]], 4),
-      new Wave([[3, 2, 1], [1, 0, 3], [3, 3, 0]], 4),
-      new Wave([[3, 0, 3], [1, 2, 3], [3, 1, 3]], 9)
+      new Wave([[0, 0, 1], [1, 0, 0], [0, 1, 0]], 2000),
+      new Wave([[2, 0, 1], [1, 2, 0], [2, 1, 0]], 5000),
+      new Wave([[3, 0, 0], [1, 3, 0], [3, 2, 0]], 4000),
+      new Wave([[3, 2, 1], [1, 0, 3], [3, 3, 0]], 4000),
+      new Wave([[3, 0, 3], [1, 2, 3], [3, 1, 3]], 6000)
     ])
   ]
 };
@@ -138,6 +146,7 @@ function moveCar(cars, index) {
   //console.log("carw: ", -car.w, " gh: ", game.h, " carxy: ", car.x, "/", car.y);
   if (car.x < -car.w || car.y > game.h) {
     delete cars[index];
+    game.lives = game.lives - 1;
     // console.log("cars: ", cars); // show cars currently still active.
   }
 }
@@ -155,6 +164,13 @@ function drawCar(car, context) {
 }
 
 window.onload = () => {
+  console.log("game plots ", game.plots);
+
+  document.onmousemove = handleMouseMove;
+  document.onmouseup = handleMouseClick;
+
+  const livesText = document.getElementById("lives");
+
   // Get sprites from dom.
   sprites.car1 = document.getElementById("car-taxi");
   sprites.car2 = document.getElementById("car-purple");
@@ -176,6 +192,9 @@ window.onload = () => {
   const canvas = document.getElementById("thecanvas");
   canvas.width = game.w;
   canvas.height = game.h;
+  // console.log("canvas: ", canvas.offsetLeft);
+  game.x = canvas.offsetLeft;
+  game.y = canvas.offsetTop;
   game.context = canvas.getContext("2d");
   // game.context.fillStyle = game.bgColor;
 
@@ -195,19 +214,19 @@ window.onload = () => {
       for (let r = 0; r < wav.cars.length; r++) {
         rows.push({ cars: wav.cars[r], delay, msg });
         msg = "";
-        delay = 1000;
+        delay = 2000;
       }
     }
   }
 
   function sendWaves(theRows, index) {
-    console.log("Index: ", index);
+    // console.log("Index: ", index);
     const row = theRows[index];
     setTimeout(() => {
       addCars(game, row);
       if (theRows[index + 1]) sendWaves(theRows, index + 1);
       else {
-        sendWaves(theRows, 0);
+        // game over.
       }
     }, row.delay);
   }
@@ -239,6 +258,18 @@ window.onload = () => {
     for (let i = 7; i < game.plots.length; i++) {
       if (!game.plots[i].vacant) drawPlot(i, game);
     }
+
+    let livesTextContent = "";
+    for (let i = 0; i < game.lives + 5; i++) {
+      livesTextContent += "&hearts;";
+    }
+    livesText.innerHTML = livesTextContent;
+    // mouse pointer cursor
+    drawCursor(game.cursor.x, game.cursor.y);
+    game.hoveredPlot = checkPlotHover(game.cursor.x, game.cursor.y);
+    if (game.hoveredPlot) {
+      drawSelection();
+    }
   }, 10);
 };
 
@@ -260,4 +291,141 @@ function toast(msg) {
   setTimeout(() => {
     document.getElementById("toast").innerHTML = "[]";
   }, 1500);
+}
+
+function handleMouseMove(event) {
+  event = event || window.event; // IE-ism
+  game.cursor.x = event.pageX - game.x; // game xy are the position
+  game.cursor.y = event.pageY - game.y; // of the upper-left corner of the canvas.
+}
+
+function handleMouseClick(event) {
+  if (game.hoveredPlot) {
+    alert("Clicked on plot #" + game.hoveredPlot);
+  }
+}
+
+function checkPlotHover(x, y) {
+  let ply, plx, plot, xDiff, yDiff, checkPlot;
+  for (let i = 0; i < game.plots.length; i++) {
+    plot = game.plots[i];
+    plx = plot.location.screenX;
+    ply = plot.location.screenY;
+    xDiff = x - plx;
+    yDiff = y - ply;
+    if (xDiff > 0 && xDiff < 160 && yDiff > 0 && yDiff < 80) {
+      checkPlot = i; // close enough to be hoving this plot. Requires more calculations.
+      break;
+    }
+  }
+  let rise, run;
+  let gridSlope = 0.5;
+  if (checkPlot) {
+    if (xDiff < 80) {
+      // left side.
+      if (yDiff < 40) {
+        // top left
+        run = x - plx;
+        rise = ply + 40 - y + 0.001;
+        const slope = rise / run;
+        // console.log("slope: ", slope, " rise: ", rise, " run: ", run);
+        if (slope <= gridSlope) {
+          return checkPlot;
+        }
+      } else {
+        // bottom left
+        run = x - plx;
+        rise = y - (ply + 40 + 0.001);
+        const slope = rise / run;
+        if (slope <= gridSlope) {
+          return checkPlot;
+        }
+      }
+    } else {
+      // right side.
+      if (yDiff < 40) {
+        // top right
+        run = plx + 160 - x;
+        rise = ply + 40 - y + 0.001;
+        const slope = rise / run;
+        // console.log("slope: ", slope, " rise: ", rise, " run: ", run);
+        if (slope <= gridSlope) {
+          return checkPlot;
+        }
+      } else {
+        // bottom right
+        run = plx + 160 - x;
+        rise = y - (ply + 40 + 0.001);
+        const slope = rise / run;
+        if (slope <= gridSlope) {
+          return checkPlot;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function drawSelection() {
+  const px = game.plots[game.hoveredPlot].location.screenX;
+  const py = game.plots[game.hoveredPlot].location.screenY;
+  game.context.strokeStyle = "red";
+  game.context.setLineDash([5, 3]);
+  game.context.beginPath();
+  game.context.moveTo(px + 80, py);
+  game.context.lineTo(px + 160, py + 40);
+  game.context.lineTo(px + 80, py + 80);
+  game.context.lineTo(px, py + 40);
+  game.context.lineTo(px + 80, py);
+  game.context.fillStyle = "rgba(255,255,0,0.5)";
+  game.context.fill();
+
+  game.context.moveTo(px, py + 40);
+  game.context.lineTo(px, py - 40);
+  game.context.lineTo(px + 80, py - 80);
+  game.context.lineTo(px + 160, py - 40);
+  game.context.lineTo(px + 80, py);
+  game.context.lineTo(px, py - 40);
+
+  game.context.moveTo(px + 160, py - 40);
+  game.context.lineTo(px + 160, py + 40);
+
+  game.context.stroke();
+  game.context.setLineDash([]);
+}
+
+function drawCursor(x, y) {
+  drawX(x, y, 10, "rgba(0,0,0,0.9)");
+
+  // Draw the cursor grid lines.
+  const lnd = y + x / 2;
+  const lup = Math.floor(lnd / 80) * 80;
+  const lup2 = lup + 80;
+  const lnu = y - x / 2;
+  const ldown = Math.floor(lnu / 80) * 80;
+  const ldown2 = ldown + 80;
+  game.context.strokeStyle = "rgba(0,0,0,0.3)";
+  game.context.beginPath();
+  game.context.moveTo(0, lup);
+  game.context.lineTo((lup / 80) * 160, 0);
+  game.context.moveTo(0, lup2);
+  game.context.lineTo((lup2 / 80) * 160, 0);
+  game.context.moveTo(0, ldown);
+  game.context.lineTo(1600, 800 + ldown);
+  game.context.moveTo(0, ldown2);
+  game.context.lineTo(1600, 800 + ldown2);
+  game.context.stroke();
+}
+
+function highlightCursorTile() {}
+
+function drawX(x, y, height, color) {
+  const width = height * 2;
+  game.context.strokeStyle = color;
+  game.context.beginPath();
+  game.context.moveTo(x - width, y + height);
+  game.context.lineTo(x + width, y - height);
+  game.context.moveTo(x + width, y + height);
+  game.context.lineTo(x - width, y - height);
+  game.context.stroke();
 }

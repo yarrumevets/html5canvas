@@ -9,6 +9,12 @@ body {
 
 canvas {
   border: 2px solid #000;
+  cursor: none;
+}
+
+#sprites {
+  visibility: hidden;
+  height: 0;
 }
 
 #sprites img {
@@ -23,4 +29,16 @@ canvas {
 h1,
 h2 {
   text-align: center;
+}
+
+#stats {
+  width: 1200px;
+  margin: auto;
+  text-align: left;
+}
+
+#lives {
+  font-size: 50px;
+  color: red;
+  display: inline;
 }
